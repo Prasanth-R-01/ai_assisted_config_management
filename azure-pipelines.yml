@@ -1,0 +1,39 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- checkout: self
+
+- task: Bash@3
+  displayName: 'Install dependencies'
+  inputs:
+    targetType: 'inline'
+    script: |
+      sudo apt update
+      sudo apt install -y ansible python3-pip
+      pip install openai
+
+- task: Bash@3
+  displayName: 'Run Ansible playbook'
+  inputs:
+    targetType: 'inline'
+    script: |
+      ansible-playbook -i ansible/hosts.ini ansible/playbook.yml > ansible_log.txt 2>&1
+
+- task: Bash@3
+  displayName: 'Analyse logs with Llama'
+  env:
+    HF_API_KEY: $(HF_API_KEY)
+  inputs:
+    targetType: 'inline'
+    script: |
+      python3 scripts/analyse_logs_llama.py ansible_log.txt > analysis_output.txt
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish analysis results'
+  inputs:
+    PathtoPublish: 'analysis_output.txt'
+    ArtifactName: 'LLM_Analysis'
