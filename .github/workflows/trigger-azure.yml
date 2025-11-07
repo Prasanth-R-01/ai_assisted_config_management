@@ -1,0 +1,25 @@
+name: Trigger Azure DevOps Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  trigger-azure:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Trigger Azure DevOps Pipeline
+        env:
+          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
+        run: |
+          echo "Triggering Azure Pipeline..."
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Basic $AZURE_TOKEN" \
+            -d '{"definition": {"id": 1}}' \
+            https://dev.azure.com/YOUR_ORG/YOUR_PROJECT/_apis/pipelines/YOUR_PIPELINE_ID/runs?api-version=7.0
