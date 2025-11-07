@@ -1,0 +1,25 @@
+---
+- name: Configure Client VM
+  hosts: client
+  become: yes
+
+  tasks:
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Create a custom message file
+      copy:
+        dest: /etc/motd
+        content: "Configured via Ansible on {{ ansible_date_time.date }}"
+
+    - name: Ensure Nginx service is running
+      service:
+        name: nginx
+        state: started
+        enabled: yes
