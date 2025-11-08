@@ -22,4 +22,4 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Basic $AZURE_TOKEN" \
             -d '{"definition": {"id": 1}}' \
-            https://dev.azure.com/YOUR_ORG/YOUR_PROJECT/_apis/pipelines/YOUR_PIPELINE_ID/runs?api-version=7.0
+            https://dev.azure.com/prasanthramaswamy01/Web-Project/_apis/pipelines/8/runs?api-version=7.0
