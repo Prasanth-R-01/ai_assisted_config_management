@@ -2,7 +2,8 @@
 - name: Configure Client VM
   hosts: client
   become: yes
-
+  become_method: sudo
+  
   tasks:
     - name: Update apt packages
       apt:
