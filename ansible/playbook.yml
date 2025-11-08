@@ -5,6 +5,9 @@
   become_method: sudo
   
   tasks:
+    - name: Ping client node
+      ping:
+      
     - name: Update apt packages
       apt:
         update_cache: yes
