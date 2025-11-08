@@ -9,80 +9,100 @@ variables:
   LOCATION: 'eastus'
   SERVER_NAME: 'ansible-server'
   CLIENT_NAME: 'ansible-client'
+  ADMIN_USERNAME: 'admin-user'
+  CLIENT_USERNAME: 'client-user'
 
-steps:
-- checkout: self
+stages:
+- stage: Deploy
+  displayName: 'Ansible + LLM Integration Demo'
+  jobs:
+  - job: SetupAndRun
+    displayName: 'Provision VMs, Configure, and Analyze Logs'
+    steps:
+    - checkout: self
 
-- task: AzureCLI@2
-  displayName: 'Login to Azure'
-  inputs:
-    azureSubscription: 'Azure subscription 1 (5b7ed929-ed60-4ef4-aa82-5f8a1a6bd071)'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      az account show
+    # 🔹 Step 1: Create Azure VMs
+    - task: AzureCLI@2
+      displayName: 'Create Azure VMs (Server + Client)'
+      inputs:
+        azureSubscription: 'Azure subscription 1 (5b7ed929-ed60-4ef4-aa82-5f8a1a6bd071)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -e
 
-- task: Bash@3
-  displayName: 'Create Azure VMs'
-  inputs:
-    targetType: 'inline'
-    script: |
-      az group create --name $RESOURCE_GROUP --location $LOCATION
+          echo "Creating Resource Group..."
+          az group create --name $RESOURCE_GROUP --location $LOCATION
 
-      echo "Creating Server VM..."
-      az vm create \
-        --resource-group $RESOURCE_GROUP \
-        --name $SERVER_NAME \
-        --image Ubuntu2204 \
-        --admin-username $ADMIN_USERNAME \
-        --admin-password $ADMIN_PASSWORD \
-        --public-ip-sku Standard
+          echo "Creating Server VM..."
+          az vm create \
+            --resource-group $RESOURCE_GROUP \
+            --name $SERVER_NAME \
+            --image Ubuntu2204 \
+            --admin-username $ADMIN_USERNAME \
+            --admin-password "$ADMIN_PASSWORD" \
+            --public-ip-sku Standard \
+            --authentication-type password
 
-      echo "Creating Client VM..."
-      az vm create \
-        --resource-group $RESOURCE_GROUP \
-        --name $CLIENT_NAME \
-        --image Ubuntu2204 \
-        --admin-username client-user \
-        --admin-password $ADMIN_PASSWORD \
-        --public-ip-sku Standard
+          echo "Creating Client VM..."
+          az vm create \
+            --resource-group $RESOURCE_GROUP \
+            --name $CLIENT_NAME \
+            --image Ubuntu2204 \
+            --admin-username $CLIENT_USERNAME \
+            --admin-password "$ADMIN_PASSWORD" \
+            --public-ip-sku Standard \
+            --authentication-type password
 
-      CLIENT_IP=$(az vm show -d -g $RESOURCE_GROUP -n $CLIENT_NAME --query publicIps -o tsv)
-      echo "Client IP: $CLIENT_IP"
+          CLIENT_IP=$(az vm show -d -g $RESOURCE_GROUP -n $CLIENT_NAME --query publicIps -o tsv)
+          echo "Client IP: $CLIENT_IP"
 
-      mkdir -p ansible
-      echo "[clients]" > ansible/hosts.ini
-      echo "$CLIENT_IP ansible_user=client-user ansible_password=$ADMIN_PASSWORD ansible_connection=ssh ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/hosts.ini
+          mkdir -p ansible
+          echo "[clients]" > ansible/hosts.ini
+          echo "$CLIENT_IP ansible_user=$CLIENT_USERNAME ansible_password=$ADMIN_PASSWORD ansible_connection=ssh ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/hosts.ini
 
-      cat ansible/hosts.ini
+          echo "Generated hosts.ini:"
+          cat ansible/hosts.ini
+      env:
+        ADMIN_PASSWORD: $(ADMIN_PASSWORD)
 
-- task: Bash@3
-  displayName: 'Install dependencies'
-  inputs:
-    targetType: 'inline'
-    script: |
-      sudo apt update
-      sudo apt install -y ansible python3-pip
-      pip install openai
+    # 🔹 Step 2: Install Ansible & Python dependencies
+    - task: Bash@3
+      displayName: 'Install Ansible and Python Dependencies'
+      inputs:
+        targetType: 'inline'
+        script: |
+          sudo apt-get update -y
+          sudo apt-get install -y ansible python3-pip sshpass
+          pip install openai
 
-- task: Bash@3
-  displayName: 'Run Ansible playbook'
-  inputs:
-    targetType: 'inline'
-    script: |
-      ansible-playbook -i ansible/hosts.ini ansible/playbook.yml > ansible_log.txt 2>&1
+    # 🔹 Step 3: Run Ansible playbook
+    - task: Bash@3
+      displayName: 'Run Ansible Playbook'
+      inputs:
+        targetType: 'inline'
+        script: |
+          echo "Running playbook..."
+          ansible-playbook -i ansible/hosts.ini ansible/playbook.yml > ansible_log.txt 2>&1 || true
+          echo "Ansible execution complete. Log saved to ansible_log.txt"
+          head -n 20 ansible_log.txt
 
-- task: Bash@3
-  displayName: 'Run LLaMA log analysis'
-  env:
-    HF_API_KEY: $(HF_API_KEY)
-  inputs:
-    targetType: 'inline'
-    script: |
-      python3 scripts/analyse_logs_llama.py ansible_log.txt > analysis_output.txt
+    # 🔹 Step 4: Run LLaMA log analysis
+    - task: Bash@3
+      displayName: 'Run LLaMA Log Analysis'
+      env:
+        HF_API_KEY: $(HF_API_KEY)
+      inputs:
+        targetType: 'inline'
+        script: |
+          mkdir -p scripts
+          echo "Analysing Ansible logs using LLaMA..."
+          python3 scripts/analyse_logs_llama.py ansible_log.txt > analysis_output.txt
+          echo "Analysis complete."
 
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Results'
-  inputs:
-    PathtoPublish: '.'
-    ArtifactName: 'LLM_Analysis_Artifacts'
+    # 🔹 Step 5: Publish artifacts
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Logs and Analysis'
+      inputs:
+        PathtoPublish: '.'
+        ArtifactName: 'LLM_Analysis_Artifacts'
