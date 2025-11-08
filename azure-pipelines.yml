@@ -4,8 +4,57 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  RESOURCE_GROUP: 'ansible-llm-demo'
+  LOCATION: 'eastus'
+  SERVER_NAME: 'ansible-server'
+  CLIENT_NAME: 'ansible-client'
+
 steps:
 - checkout: self
+
+- task: AzureCLI@2
+  displayName: 'Login to Azure'
+  inputs:
+    azureSubscription: 'Your-Service-Connection-Name'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      az account show
+
+- task: Bash@3
+  displayName: 'Create Azure VMs'
+  inputs:
+    targetType: 'inline'
+    script: |
+      az group create --name $RESOURCE_GROUP --location $LOCATION
+
+      echo "Creating Server VM..."
+      az vm create \
+        --resource-group $RESOURCE_GROUP \
+        --name $SERVER_NAME \
+        --image Ubuntu2204 \
+        --admin-username $ADMIN_USERNAME \
+        --admin-password $ADMIN_PASSWORD \
+        --public-ip-sku Standard
+
+      echo "Creating Client VM..."
+      az vm create \
+        --resource-group $RESOURCE_GROUP \
+        --name $CLIENT_NAME \
+        --image Ubuntu2204 \
+        --admin-username client-user \
+        --admin-password $ADMIN_PASSWORD \
+        --public-ip-sku Standard
+
+      CLIENT_IP=$(az vm show -d -g $RESOURCE_GROUP -n $CLIENT_NAME --query publicIps -o tsv)
+      echo "Client IP: $CLIENT_IP"
+
+      mkdir -p ansible
+      echo "[clients]" > ansible/hosts.ini
+      echo "$CLIENT_IP ansible_user=client-user ansible_password=$ADMIN_PASSWORD ansible_connection=ssh ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ansible/hosts.ini
+
+      cat ansible/hosts.ini
 
 - task: Bash@3
   displayName: 'Install dependencies'
@@ -24,7 +73,7 @@ steps:
       ansible-playbook -i ansible/hosts.ini ansible/playbook.yml > ansible_log.txt 2>&1
 
 - task: Bash@3
-  displayName: 'Analyse logs with Llama'
+  displayName: 'Run LLaMA log analysis'
   env:
     HF_API_KEY: $(HF_API_KEY)
   inputs:
@@ -33,7 +82,7 @@ steps:
       python3 scripts/analyse_logs_llama.py ansible_log.txt > analysis_output.txt
 
 - task: PublishBuildArtifacts@1
-  displayName: 'Publish analysis results'
+  displayName: 'Publish Results'
   inputs:
-    PathtoPublish: 'analysis_output.txt'
-    ArtifactName: 'LLM_Analysis'
+    PathtoPublish: '.'
+    ArtifactName: 'LLM_Analysis_Artifacts'
