@@ -1,1 +1,48 @@
-# ai_assisted_config_management
+# LLaMA-Assisted Infrastructure Automation with Ansible
+
+This project demonstrates how to combine **Ansible** with **AI-powered log analysis** using **Meta’s LLaMA** to streamline infrastructure automation workflows on Azure.
+
+---
+
+## Overview
+
+- Run an Ansible playbook via **Azure Pipeline** to configure a client VM.
+- Capture execution logs.
+- Analyze logs with **LLaMA** for clear, human-readable insights.
+- Helps validate automation outcomes without manually digging through logs.
+
+---
+
+## Repository Structure
+
+├── ansible/
+│ ├── hosts.ini # Inventory file
+│ └── playbook.yml # Ansible playbook
+├── scripts/
+│ └── analyse_logs_llama.py # LLaMA log analysis script
+├── ansible_log.txt # Sample Ansible log
+├── analysis_output.txt # Sample LLaMA output
+└── README.md
+
+---
+
+## Usage
+
+1. Update `hosts.ini` with the client VM IP and credentials.
+2. Run the playbook:
+
+
+ansible-playbook -i ansible/hosts.ini ansible/playbook.yml
+
+Analyse the logs:
+
+python3 scripts/analyse_logs_llama.py ansible_log.txt > analysis_output.txt
+
+Learning Outcomes:
+- Automating infrastructure with Ansible.
+- Using AI models to interpret automation logs.
+- Enhancing DevOps workflows with AI-assisted insights.
+
+Using AI models to interpret automation logs.
+
+Enhancing DevOps workflows with AI-assisted insights.
