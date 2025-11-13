@@ -15,13 +15,13 @@ This project demonstrates how to combine **Ansible** with **AI-powered log analy
 
 ## Repository Structure
 
-├── ansible/
-│ ├── hosts.ini # Inventory file
-│ └── playbook.yml # Ansible playbook
-├── scripts/
-│ └── analyse_logs_llama.py # LLaMA log analysis script
-├── ansible_log.txt # Sample Ansible log
-├── analysis_output.txt # Sample LLaMA output
+├── ansible/  <br />
+│ ├── hosts.ini # Inventory file  <br />
+│ └── playbook.yml # Ansible playbook  <br />
+├── scripts/  <br />
+│ └── analyse_logs_llama.py # LLaMA log analysis script  <br />
+├── ansible_log.txt # Sample Ansible log  <br />
+├── analysis_output.txt # Sample LLaMA output  <br />
 └── README.md
 
 ---
