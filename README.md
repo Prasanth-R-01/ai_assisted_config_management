@@ -30,11 +30,10 @@ This project demonstrates how to combine **Ansible** with **AI-powered log analy
 
 1. Update `hosts.ini` with the client VM IP and credentials.
 2. Run the playbook:
-
-
+   
 ansible-playbook -i ansible/hosts.ini ansible/playbook.yml
 
-Analyse the logs:
+3. Analyse the logs:
 
 python3 scripts/analyse_logs_llama.py ansible_log.txt > analysis_output.txt
 
@@ -42,7 +41,3 @@ Learning Outcomes:
 - Automating infrastructure with Ansible.
 - Using AI models to interpret automation logs.
 - Enhancing DevOps workflows with AI-assisted insights.
-
-Using AI models to interpret automation logs.
-
-Enhancing DevOps workflows with AI-assisted insights.
